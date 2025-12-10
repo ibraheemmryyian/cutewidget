@@ -129,14 +129,12 @@ def main():
         print(f"Error loading assets: {e}")
         return
 
-    # Helper to crop transparent space
     def crop_to_content(surf):
         mask = pygame.mask.from_surface(surf)
-        rect = mask.get_bounding_rects()
-        if rect:
-            # Union of all non-empty rects if multiple parts (unlikely for single sprite but safe)
-            # Actually get_bounding_rects returns a list, easiest is get_bounding_rect() which returns union
-            r = mask.get_bounding_rect()
+        rects = mask.get_bounding_rects()
+        if rects:
+            # Union all rects to get the full bounding box
+            r = rects[0].unionall(rects)
             return surf.subsurface(r).copy()
         return surf
 
