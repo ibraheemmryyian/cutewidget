@@ -107,7 +107,8 @@ def main():
         cat_images_orig = []
         for name in ['cat_idle_1.png', 'cat_idle_2.png', 'cat_sleep.png']:
             img = pygame.image.load(os.path.join(asset_dir, name)).convert()
-            img.set_colorkey((0, 255, 0))
+            # Use top-left pixel for transparency safely
+            img.set_colorkey(img.get_at((0,0)))
             cat_images_orig.append(img)
             
         firefly_orig = pygame.image.load(os.path.join(asset_dir, 'firefly.png')).convert()
@@ -118,7 +119,7 @@ def main():
         print(f"Error loading assets: {e}")
         return
 
-    # Helper to rescale assets
+    # Rescale assets
     def scale_assets(w, h):
         bg = pygame.transform.scale(bg_orig, (w, h))
         cats = [pygame.transform.scale(img, (60, 60)) for img in cat_images_orig]
@@ -133,27 +134,75 @@ def main():
             self.current_idx = 0
             self.image = self.images[self.current_idx]
             self.rect = self.image.get_rect()
-            self.update_pos(current_w, current_h)
             
-            self.state = "idle"
+            # Position
+            self.x = current_w - 80
+            self.y = current_h - 70
+            self.rect.topleft = (int(self.x), int(self.y))
+            
+            # Movement / State
+            self.state = "idle" # idle, walk
+            self.target_x = self.x
             self.timer = 0
             self.duration = random.randint(60, 180)
+            self.speed = 0.5
 
         def update_pos(self, w, h):
-            self.rect.bottomright = (w - 20, h - 20)
-            
+            # Keep relative scale or just clamp?
+            # Let's just ensure it remains on screen
+            self.y = h - 70
+            self.x = min(self.x, w - 60)
+            self.rect.topleft = (int(self.x), int(self.y))
+
         def update_images(self, new_images):
             self.images = new_images
             self.image = self.images[self.current_idx]
 
         def update(self):
+            # State Management
             self.timer += 1
-            if self.timer >= self.duration:
-                self.timer = 0
-                self.duration = random.randint(120, 300)
-                choice = random.choice([0, 0, 1, 2, 2])
-                self.current_idx = choice
-                self.image = self.images[self.current_idx]
+            
+            if self.state == "idle":
+                # Switch pose occasionally
+                if self.timer >= self.duration:
+                    self.timer = 0
+                    self.duration = random.randint(60, 180)
+                    
+                    # 50% chance to start walking, 50% chance to change idle pose
+                    if random.random() < 0.5:
+                        self.state = "walk"
+                        self.target_x = random.randint(0, WINDOW_WIDTH - 60)
+                        # Switch to walking pose (using idx 1 'licking' as makeshift walk cycle or just sit)
+                        # Ideally we'd have a walk anim, but we'll hop/slide with pose 0
+                        self.current_idx = 0 
+                    else:
+                        # Change idle pose
+                        choice = random.choice([0, 0, 1, 2, 2])
+                        self.current_idx = choice
+            
+            elif self.state == "walk":
+                # Move towards target
+                dx = self.target_x - self.x
+                if abs(dx) < self.speed:
+                    self.x = self.target_x
+                    self.state = "idle"
+                    self.timer = 0
+                    self.current_idx = 0
+                else:
+                    self.x += self.speed if dx > 0 else -self.speed
+                    # Tiny hop effect or just slide
+                    if (pygame.time.get_ticks() // 200) % 2 == 0:
+                         self.current_idx = 0
+                    else:
+                         self.current_idx = 0 # Just slide for now to be safe with available assets
+            
+            # Update Image and Rect
+            self.image = self.images[self.current_idx]
+            self.rect.topleft = (int(self.x), int(self.y))
+            
+            # Flip if moving left
+            if self.state == "walk" and self.target_x < self.x:
+                 self.image = pygame.transform.flip(self.image, True, False)
 
         def draw(self, surface):
             surface.blit(self.image, self.rect)
