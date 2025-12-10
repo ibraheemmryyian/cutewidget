@@ -64,7 +64,7 @@ class Firefly:
         surface.blit(self.image, self.rect)
 
 import ctypes
-from ctypes import windll, byref, Structure, c_long, c_int
+from ctypes import windll, byref, Structure, c_long, c_int, wintypes
 
 class POINT(Structure):
     _fields_ = [("x", c_long), ("y", c_long)]
