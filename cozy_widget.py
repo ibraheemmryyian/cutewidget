@@ -160,7 +160,9 @@ def main():
     class Cat:
         def __init__(self, images):
             self.images = images
-            self.current_idx = 0
+            self.images = images
+            # Start with a preferred pose (1=lick, 2=sleep), avoid 0 (sit)
+            self.current_idx = random.choice([1, 2])
             self.image = self.images[self.current_idx]
             self.rect = self.image.get_rect()
             
