@@ -106,19 +106,16 @@ def main():
         bg_orig = pygame.image.load(os.path.join(asset_dir, 'background.png')).convert()
         
         cat_images_orig = []
-        # Load sprite sheet and slice it
-        sheet = pygame.image.load(os.path.join(asset_dir, 'cat_sprite_sheet.png')).convert()
+        # Load cleaned sprite sheet (already has alpha)
+        sheet = pygame.image.load(os.path.join(asset_dir, 'cat_sprites_clean.png')).convert_alpha()
         sheet_w = sheet.get_width()
         sheet_h = sheet.get_height()
         # Assuming 3 horizontal sprites
         sprite_w = sheet_w // 3
         
         for i in range(3):
-            # Create surface for each sprite
-            surf = pygame.Surface((sprite_w, sheet_h))
-            # Magenta key (255, 0, 255)
-            surf.fill((255, 0, 255)) 
-            surf.set_colorkey((255, 0, 255))
+            # Create surface for each sprite (needs SRCALPHA to keep transparency)
+            surf = pygame.Surface((sprite_w, sheet_h), pygame.SRCALPHA)
             surf.blit(sheet, (0, 0), (i * sprite_w, 0, sprite_w, sheet_h))
             cat_images_orig.append(surf)
 
@@ -132,10 +129,31 @@ def main():
         print(f"Error loading assets: {e}")
         return
 
+    # Helper to crop transparent space
+    def crop_to_content(surf):
+        mask = pygame.mask.from_surface(surf)
+        rect = mask.get_bounding_rects()
+        if rect:
+            # Union of all non-empty rects if multiple parts (unlikely for single sprite but safe)
+            # Actually get_bounding_rects returns a list, easiest is get_bounding_rect() which returns union
+            r = mask.get_bounding_rect()
+            return surf.subsurface(r).copy()
+        return surf
+
     # Rescale assets
     def scale_assets(w, h):
         bg = pygame.transform.scale(bg_orig, (w, h))
-        cats = [pygame.transform.scale(img, (60, 60)) for img in cat_images_orig]
+        cats = []
+        for img in cat_images_orig:
+            # Crop first (remove empty space from spritesheet slice)
+            cropped = crop_to_content(img)
+            
+            # Constant Height Scaling (maintain aspect ratio)
+            target_h = 70
+            aspect = cropped.get_width() / cropped.get_height()
+            target_w = int(target_h * aspect)
+            
+            cats.append(pygame.transform.scale(cropped, (target_w, target_h)))
         return bg, cats
 
     bg_img, cat_images = scale_assets(current_w, current_h)
@@ -149,8 +167,8 @@ def main():
             self.rect = self.image.get_rect()
             
             # Position
-            self.x = current_w - 80
-            self.y = current_h - 70
+            self.x = current_w - 90
+            self.y = current_h - 80
             self.rect.topleft = (int(self.x), int(self.y))
             
             # Movement / State
@@ -158,7 +176,7 @@ def main():
             self.target_x = self.x
             self.timer = 0
             self.duration = random.randint(60, 180)
-            self.speed = 0.5
+            self.speed = 1.6 # A bit faster to match bobbing
 
         def update_pos(self, w, h):
             # Keep relative scale or just clamp?
