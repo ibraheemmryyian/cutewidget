@@ -198,7 +198,8 @@ def main():
                 # Switch pose occasionally
                 if self.timer >= self.duration:
                     self.timer = 0
-                    self.duration = random.randint(60, 180)
+                    # Keep the long duration consistent!
+                    self.duration = random.randint(54000, 126000)
                     
                     # 50% chance to start walking, 50% chance to change idle pose
                     if random.random() < 0.5:
@@ -209,7 +210,9 @@ def main():
                         self.current_idx = 0 
                     else:
                         # Change idle pose
-                        choice = random.choice([0, 0, 1, 2, 2])
+                        # 0 = sit (hate), 1 = lick (love), 2 = sleep (love)
+                        # Weights: Sit very low, Lick/Sleep high
+                        choice = random.choice([0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2])
                         self.current_idx = choice
             
             elif self.state == "walk":
@@ -219,7 +222,8 @@ def main():
                     self.x = self.target_x
                     self.state = "idle"
                     self.timer = 0
-                    self.current_idx = 0
+                    # After walk, prefer 1 or 2
+                    self.current_idx = random.choice([0, 1, 1, 2, 2])
                     self.rect.y = int(self.y) # Reset height
                 else:
                     self.x += self.speed if dx > 0 else -self.speed
