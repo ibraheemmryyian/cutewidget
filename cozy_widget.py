@@ -226,6 +226,8 @@ def main():
                     self.x = self.target_x
                     self.state = "idle"
                     self.timer = 0
+                    # Switch to preferred pose (1=lick, 2=sleep) immediately!
+                    self.current_idx = random.choice([1, 2])
                     self.rect.y = int(self.y) # Reset height
                 else:
                     self.x += self.speed if dx > 0 else -self.speed
