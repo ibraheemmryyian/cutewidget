@@ -20,18 +20,16 @@ if os.path.exists(img_path):
     # Actually, let's just use Pygame's efficient array manipulation if possible, 
     # OR since it's small, per-pixel is instant.
     
-    # Target color: Magenta
-    target = (255, 0, 255)
-    threshold = 50 # Tolerance
-    
+    # Target
     for y in range(h):
         for x in range(w):
             color = img.get_at((x, y))
-            # Distance from magenta
-            dist = max(abs(color.r - target[0]), abs(color.g - target[1]), abs(color.b - target[2]))
+            r, g, b, a = color
             
-            if dist > threshold:
-                # Keep pixel
+            # Heuristic: High R/B, Low G = Magenta-ish
+            is_magenta_ish = (r > 100 and b > 100 and g < 100)
+            
+            if not is_magenta_ish:
                 clean_img.set_at((x, y), color)
             # Else transparent
             

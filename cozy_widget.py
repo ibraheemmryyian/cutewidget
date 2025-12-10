@@ -173,7 +173,8 @@ def main():
             self.state = "idle" # idle, walk
             self.target_x = self.x
             self.timer = 0
-            self.duration = random.randint(60, 180)
+            # 5-15 seconds idle (assuming 30 FPS)
+            self.duration = random.randint(150, 450) 
             self.speed = 1.6 # A bit faster to match bobbing
 
         def update_pos(self, w, h):
