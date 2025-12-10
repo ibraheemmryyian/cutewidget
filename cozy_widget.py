@@ -2,6 +2,7 @@ import pygame
 import random
 import os
 import sys
+import math
 
 # Configuration
 WINDOW_WIDTH = 400
@@ -105,11 +106,23 @@ def main():
         bg_orig = pygame.image.load(os.path.join(asset_dir, 'background.png')).convert()
         
         cat_images_orig = []
-        for name in ['cat_idle_1.png', 'cat_idle_2.png', 'cat_sleep.png']:
-            img = pygame.image.load(os.path.join(asset_dir, name)).convert()
-            # Use top-left pixel for transparency safely
-            img.set_colorkey(img.get_at((0,0)))
-            cat_images_orig.append(img)
+        # Load sprite sheet and slice it
+        sheet = pygame.image.load(os.path.join(asset_dir, 'cat_sprite_sheet.png')).convert()
+        sheet_w = sheet.get_width()
+        sheet_h = sheet.get_height()
+        # Assuming 3 horizontal sprites
+        sprite_w = sheet_w // 3
+        
+        for i in range(3):
+            # Create surface for each sprite
+            surf = pygame.Surface((sprite_w, sheet_h))
+            # Magenta key (255, 0, 255)
+            surf.fill((255, 0, 255)) 
+            surf.set_colorkey((255, 0, 255))
+            surf.blit(sheet, (0, 0), (i * sprite_w, 0, sprite_w, sheet_h))
+            cat_images_orig.append(surf)
+
+        # Removed individual loads
             
         firefly_orig = pygame.image.load(os.path.join(asset_dir, 'firefly.png')).convert()
         firefly_orig.set_colorkey(firefly_orig.get_at((0,0))) 
@@ -188,17 +201,24 @@ def main():
                     self.state = "idle"
                     self.timer = 0
                     self.current_idx = 0
+                    self.rect.y = int(self.y) # Reset height
                 else:
                     self.x += self.speed if dx > 0 else -self.speed
-                    # Tiny hop effect or just slide
-                    if (pygame.time.get_ticks() // 200) % 2 == 0:
-                         self.current_idx = 0
-                    else:
-                         self.current_idx = 0 # Just slide for now to be safe with available assets
+                    
+                    # Bobbing motion (Walk cycle simulation)
+                    # Bob up and down every 10 pixels or so
+                    bob_offset = math.sin(pygame.time.get_ticks() * 0.015) * 3
+                    self.rect.y = int(self.y + bob_offset)
+                    
+                    # Switch sprites for rudimentary animation if we had them, 
+                    # for now sticking to the 'sit' or 'lick' pose but purely the bobbing helps "floatiness"
+                    self.current_idx = 0 
             
-            # Update Image and Rect
+            # Update Image and Rect x (y is handled in walk or idle)
             self.image = self.images[self.current_idx]
-            self.rect.topleft = (int(self.x), int(self.y))
+            self.rect.x = int(self.x)
+            if self.state == "idle":
+                 self.rect.y = int(self.y)
             
             # Flip if moving left
             if self.state == "walk" and self.target_x < self.x:
